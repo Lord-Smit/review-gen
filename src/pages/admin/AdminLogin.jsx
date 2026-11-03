@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw, Sparkles, Lock, Mail, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import {
@@ -28,8 +28,8 @@ export default function AdminLogin() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function AdminLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Please fill in both fields');
+      setError('Please fill in both email and password.');
       return;
     }
 
@@ -86,88 +86,130 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden selection:bg-blue-500 selection:text-white">
+      {/* Ambient background glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200/90 p-8 sm:p-10 relative z-10">
+        {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600 text-white font-bold text-xl mb-3 shadow-xs">
-            RG
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 text-white shadow-lg shadow-blue-500/30 mb-4">
+            <Sparkles className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">ReviewGen Admin</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to manage businesses and reviews</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            ReviewGen Admin
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Sign in to manage business portals and customer analytics
+          </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div
+            role="alert"
+            className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs sm:text-sm text-rose-700 leading-relaxed"
+          >
             {error}
           </div>
         )}
 
         {notice && (
-          <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+          <div
+            role="status"
+            className="mb-6 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs sm:text-sm text-emerald-700 leading-relaxed"
+          >
             {notice}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
-              Email address
+            <label
+              className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
+              htmlFor="email"
+            >
+              Email Address
             </label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
-              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-xs"
-            />
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-2xs"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="password">
+            <label
+              className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
+              htmlFor="password"
+            >
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-xs"
-            />
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-2xs"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm rounded-lg shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full mt-3 py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/25 transition-all hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
           >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>{submitting ? 'Signing in...' : 'Sign In'}</span>
+            {submitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <span>Sign in to Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
         {IS_DEMO_MODE && (
-          <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm">
-            <p className="font-medium text-gray-700">Demo mode</p>
-            <p className="mt-1 text-gray-500">
-              Data is stored in this browser only. Use the default demo admin:
+          <div className="mt-8 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-xs text-amber-900 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold flex items-center gap-1.5 text-amber-800">
+                <ShieldCheck className="w-4 h-4 text-amber-600" />
+                Demo Mode Active
+              </span>
+              <span className="text-[10px] uppercase font-semibold text-amber-600">
+                Local Only
+              </span>
+            </div>
+            <p className="text-amber-800/80 leading-relaxed text-[11px]">
+              No Supabase credentials detected. You can use the local demo account:
             </p>
-            <dl className="mt-2 space-y-1 font-mono text-xs text-gray-700">
-              <div className="flex gap-2">
-                <dt className="text-gray-500">Email</dt>
-                <dd className="break-all">{DEMO_ADMIN_EMAIL}</dd>
+            <div className="rounded-lg bg-white/80 p-2.5 font-mono text-[11px] space-y-1 border border-amber-200/80">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Email:</span>
+                <span className="font-semibold text-slate-700">{DEMO_ADMIN_EMAIL}</span>
               </div>
-              <div className="flex gap-2">
-                <dt className="text-gray-500">Password</dt>
-                <dd className="break-all">{DEMO_ADMIN_PASSWORD}</dd>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Password:</span>
+                <span className="font-semibold text-slate-700">{DEMO_ADMIN_PASSWORD}</span>
               </div>
-            </dl>
-            <div className="mt-3 flex flex-wrap gap-2">
+            </div>
+
+            <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -176,24 +218,21 @@ export default function AdminLogin() {
                   setError('');
                   setNotice('');
                 }}
-                className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+                className="flex-1 py-1.5 px-3 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-amber-800 hover:bg-amber-100/70 transition-colors cursor-pointer"
               >
-                Fill demo credentials
+                Auto-fill Demo
               </button>
               <button
                 type="button"
                 onClick={handleResetDemoData}
                 disabled={resetting}
-                className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 cursor-pointer inline-flex items-center gap-1.5"
+                className="py-1.5 px-3 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-amber-800 hover:bg-amber-100/70 transition-colors disabled:opacity-50 cursor-pointer inline-flex items-center gap-1"
+                title="Reset demo data"
               >
                 {resetting && <Loader2 className="w-3 h-3 animate-spin" />}
-                <RotateCcw className="w-3 h-3" />
-                <span>{resetting ? 'Resetting...' : 'Reset demo data'}</span>
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
             </div>
-            <p className="mt-2 text-xs text-gray-400">
-              Reset deletes locally saved businesses and analytics.
-            </p>
           </div>
         )}
       </div>

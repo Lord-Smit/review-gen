@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Copy, Check, ExternalLink, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  Save,
+  Copy,
+  Check,
+  ExternalLink,
+  Sparkles,
+  Utensils,
+  Car,
+  Bike,
+  Building2,
+  CheckCircle2,
+} from 'lucide-react';
 import ColorPicker from '../../components/admin/ColorPicker';
 import IndustryPreview from '../../components/admin/IndustryPreview';
 import { listIndustries, resolveIndustry } from '../../data/industries';
@@ -19,6 +32,13 @@ import { copyToClipboard } from '../../utils/clipboard';
 
 const INDUSTRIES = listIndustries();
 const INDUSTRY_LABELS = new Set(INDUSTRIES.map((industry) => industry.label));
+
+const INDUSTRY_ICONS = {
+  restaurant: Utensils,
+  'car-showroom': Car,
+  'bike-showroom': Bike,
+  generic: Building2,
+};
 
 export default function BusinessForm() {
   const { id } = useParams();
@@ -488,48 +508,94 @@ export default function BusinessForm() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="industry_key">
-                Industry
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-gray-900" htmlFor="industry_key">
+                Industry Preset
               </label>
-              <select
-                id="industry_key"
-                name="industry_key"
-                value={formData.industry_key}
-                onChange={handleIndustryChange}
-                className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
-              >
-                {INDUSTRIES.map((industry) => (
-                  <option key={industry.id} value={industry.id}>
-                    {industry.label}
-                  </option>
-                ))}
-              </select>
-              {errors.industry_key ? (
-                <p className="text-xs text-red-600 mt-1">{errors.industry_key}</p>
-              ) : (
-                <p className="text-xs text-gray-400 mt-1">
-                  Controls the review wording and the options customers can tap.
-                </p>
-              )}
+              <span className="text-xs text-gray-500">
+                Determines customer wording & review options
+              </span>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="category">
-                Category (optional label)
-              </label>
-              <input
-                id="category"
-                name="category"
-                type="text"
-                maxLength={LIMITS.category}
-                value={formData.category}
-                onChange={handleChange}
-                placeholder="e.g. Car Showroom"
-                className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {INDUSTRIES.map((industry) => {
+                const isSelected = formData.industry_key === industry.id;
+                const IconComponent = INDUSTRY_ICONS[industry.id] || Building2;
+                return (
+                  <button
+                    key={industry.id}
+                    type="button"
+                    onClick={() => handleIndustryChange({ target: { value: industry.id } })}
+                    className={`relative p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-lg border ${
+                          isSelected
+                            ? 'border-blue-200 bg-white text-blue-600 shadow-2xs'
+                            : 'border-gray-100 bg-gray-50 text-gray-500'
+                        }`}
+                      >
+                        <IconComponent className="h-4 w-4" />
+                      </div>
+                      {isSelected && (
+                        <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="block text-xs font-bold text-gray-900">
+                        {industry.label}
+                      </span>
+                      <p className="text-[11px] text-gray-500 leading-snug line-clamp-2 mt-0.5">
+                        {industry.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Hidden fallback select for standard form accessibility */}
+            <select
+              id="industry_key"
+              name="industry_key"
+              value={formData.industry_key}
+              onChange={handleIndustryChange}
+              className="sr-only"
+              aria-label="Industry Preset Selection"
+            >
+              {INDUSTRIES.map((industry) => (
+                <option key={industry.id} value={industry.id}>
+                  {industry.label}
+                </option>
+              ))}
+            </select>
+
+            {errors.industry_key && (
+              <p className="text-xs text-red-600 mt-1">{errors.industry_key}</p>
+            )}
+          </div>
+
+          <div className="pt-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="category">
+              Custom Category Label (Optional subtitle displayed on customer pages)
+            </label>
+            <input
+              id="category"
+              name="category"
+              type="text"
+              maxLength={LIMITS.category}
+              value={formData.category}
+              onChange={handleChange}
+              placeholder="e.g. Fine Dining, Luxury Car Showroom, Café & Bakery"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -746,27 +812,33 @@ export default function BusinessForm() {
           </div>
         </fieldset>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => navigate('/admin/businesses')}
-            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm rounded-lg shadow-xs transition-colors cursor-pointer"
-          >
-            {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            <span>{isEdit ? 'Save Changes' : 'Create Business'}</span>
-          </button>
+        {/* Sticky Action Footer */}
+        <div className="sticky bottom-0 z-20 -mx-4 -mb-8 sm:-mx-6 lg:-mx-8 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg flex items-center justify-between rounded-b-2xl">
+          <div className="text-xs text-slate-500 hidden sm:block">
+            {isEdit ? 'Editing business profile & review settings' : 'Creating new client review portal'}
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            <button
+              type="button"
+              onClick={() => navigate('/admin/businesses')}
+              className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm shadow-blue-500/25 transition-all hover:shadow-md cursor-pointer"
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>{isEdit ? 'Save Changes' : 'Create Business'}</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>

@@ -11,7 +11,10 @@ import {
   Copy,
   Check,
   Search,
-  Info
+  Info,
+  Utensils,
+  Car,
+  Bike,
 } from 'lucide-react';
 import StatsCard from '../../components/admin/StatsCard';
 import { getOverviewStats, getAllBusinessesStats } from '../../lib/analytics';
@@ -25,8 +28,38 @@ const TIME_RANGE_LABELS = {
   '30d': 'Last 30 Days',
 };
 
+function getIndustryBadge(industryKey, category) {
+  const key = industryKey || (category ? category.toLowerCase() : 'generic');
+  if (key.includes('restaurant') || key.includes('food') || key.includes('dining')) {
+    return {
+      label: 'Restaurant',
+      icon: Utensils,
+      className: 'bg-rose-50 text-rose-700 border-rose-200/80',
+    };
+  }
+  if (key.includes('bike') || key.includes('two-wheeler')) {
+    return {
+      label: 'Bike Showroom',
+      icon: Bike,
+      className: 'bg-amber-50 text-amber-700 border-amber-200/80',
+    };
+  }
+  if (key.includes('car') || key.includes('auto')) {
+    return {
+      label: 'Car Showroom',
+      icon: Car,
+      className: 'bg-blue-50 text-blue-700 border-blue-200/80',
+    };
+  }
+  return {
+    label: category || 'General',
+    icon: Building2,
+    className: 'bg-slate-100 text-slate-700 border-slate-200',
+  };
+}
+
 export default function AdminDashboard() {
-  const [timeRange, setTimeRange] = useState('all'); // 'all' | 'today' | '7d' | '30d'
+  const [timeRange, setTimeRange] = useState('all');
   const [stats, setStats] = useState({
     totalBusinesses: 0,
     activeBusinesses: 0,
@@ -61,8 +94,6 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    // Data fetching legitimately starts a loading state; the rule targets
-    // derived-state writes that should happen during render instead.
     // oxlint-disable-next-line react/set-state-in-effect
     fetchDashboardData(timeRange);
   }, [timeRange, fetchDashboardData]);
@@ -79,37 +110,40 @@ export default function AdminDashboard() {
   const filteredBusinesses = useMemo(() => {
     if (!searchQuery.trim()) return businessAnalytics;
     const q = searchQuery.toLowerCase().trim();
-    return businessAnalytics.filter(b =>
-      b.name?.toLowerCase().includes(q) ||
-      b.slug?.toLowerCase().includes(q) ||
-      b.category?.toLowerCase().includes(q)
+    return businessAnalytics.filter(
+      (b) =>
+        b.name?.toLowerCase().includes(q) ||
+        b.slug?.toLowerCase().includes(q) ||
+        b.category?.toLowerCase().includes(q)
     );
   }, [businessAnalytics, searchQuery]);
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header and Date Range Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header & Date Controls */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Analytics & Overview</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Track customer page visits, Google review link clicks, and business performance metrics
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Analytics Overview
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Track customer page visits, review drafts, and Google review conversions.
           </p>
         </div>
 
         {/* Date Filter Tabs */}
-        <div className="flex items-center gap-1.5 bg-white border border-gray-200 p-1 rounded-xl shadow-2xs self-start md:self-auto">
-          <Calendar className="w-4 h-4 text-gray-400 ml-2 mr-1" />
+        <div className="inline-flex items-center rounded-xl border border-slate-200/90 bg-white p-1 shadow-2xs self-start sm:self-auto">
+          <Calendar className="ml-2 mr-1.5 h-3.5 w-3.5 text-slate-400" />
           {Object.entries(TIME_RANGE_LABELS).map(([id, label]) => (
             <button
               key={id}
               type="button"
               onClick={() => setTimeRange(id)}
               aria-pressed={timeRange === id}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 timeRange === id
                   ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {label}
@@ -121,93 +155,93 @@ export default function AdminDashboard() {
       {loadError && (
         <div
           role="alert"
-          className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+          className="flex items-start justify-between gap-4 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-800"
         >
           <div className="flex items-start gap-2.5">
-            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
             <div>
-              <p className="font-semibold">Couldn&apos;t load analytics</p>
-              <p className="mt-0.5 text-red-700">{loadError}</p>
+              <p className="font-semibold">Couldn't load analytics</p>
+              <p className="mt-0.5 text-rose-700">{loadError}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => fetchDashboardData(timeRange)}
-            className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 cursor-pointer"
+            className="shrink-0 rounded-lg border border-rose-300 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 cursor-pointer"
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Accuracy Disclosure Notice */}
-      <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 flex items-start gap-3 text-xs text-amber-900">
-        <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-        <p>
-          <strong className="font-semibold">Analytics Note:</strong> &ldquo;Google Review Link Clicks&rdquo; represents visitors who clicked the &ldquo;Submit Review on Google&rdquo; button to open their Google review destination. ReviewGen copies their drafted review to their clipboard; it does not track or verify whether the customer finalized their submission on Google.
-        </p>
-      </div>
-
       {/* Global Overview Metric Cards */}
       {loading ? (
-        <div className="py-12 flex items-center justify-center">
+        <div className="py-16 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <StatsCard
             title="Total Businesses"
             value={stats.totalBusinesses}
             icon={Building2}
-            color="bg-blue-100 text-blue-600"
+            color="border-blue-100 bg-blue-50 text-blue-600"
           />
           <StatsCard
             title="Active Businesses"
             value={stats.activeBusinesses}
             icon={CheckCircle}
-            color="bg-emerald-100 text-emerald-600"
+            color="border-emerald-100 bg-emerald-50 text-emerald-600"
           />
           <StatsCard
-            title="Total Review-Page Visits"
+            title="Review Page Visits"
             value={stats.totalPageViews}
             icon={Eye}
-            color="bg-purple-100 text-purple-600"
+            color="border-purple-100 bg-purple-50 text-purple-600"
           />
           <StatsCard
             title="Google Link Clicks"
             value={stats.totalGoogleClicks}
             icon={ExternalLink}
-            color="bg-amber-100 text-amber-600"
+            color="border-amber-100 bg-amber-50 text-amber-600"
           />
           <StatsCard
-            title="Click-Through Rate"
+            title="Conversion Rate"
             value={stats.conversionRate}
             icon={TrendingUp}
-            color="bg-indigo-100 text-indigo-600"
+            color="border-indigo-100 bg-indigo-50 text-indigo-600"
           />
         </div>
       )}
 
-      {/* Individual Business Analytics Section */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Accuracy Disclosure Notice */}
+      <div className="rounded-2xl border border-blue-200/60 bg-blue-50/50 p-4 flex items-start gap-3 text-xs text-blue-900">
+        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          <strong className="font-semibold">Conversion Tracking:</strong> &ldquo;Google Link Clicks&rdquo; counts customers who tap the &ldquo;Submit Review on Google&rdquo; button, which copies their drafted review to the clipboard and directs them to your Google review page.
+        </p>
+      </div>
+
+      {/* Individual Business Performance Table */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 tracking-tight">
-              Individual Business Performance
+            <h2 className="text-lg font-bold tracking-tight text-slate-900">
+              Business Performance Breakdown
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Traffic and Google link click conversion per business ({TIME_RANGE_LABELS[timeRange]})
+            <p className="text-xs text-slate-500 mt-0.5">
+              Traffic and Google review conversion per business ({TIME_RANGE_LABELS[timeRange]})
             </p>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search business analytics..."
-              className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              placeholder="Search by name, slug or category..."
+              className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-2xs"
             />
           </div>
         </div>
@@ -215,113 +249,141 @@ export default function AdminDashboard() {
         {filteredBusinesses.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <thead className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th scope="col" className="px-5 py-3">Business</th>
-                  <th scope="col" className="px-5 py-3">Status</th>
-                  <th scope="col" className="px-5 py-3 text-right">Page Visits</th>
-                  <th scope="col" className="px-5 py-3 text-right">Google Clicks</th>
-                  <th scope="col" className="px-5 py-3 text-right">Click Rate</th>
-                  <th scope="col" className="px-5 py-3 text-center">Action</th>
+                  <th scope="col" className="px-6 py-3.5">Business & Category</th>
+                  <th scope="col" className="px-6 py-3.5">Status</th>
+                  <th scope="col" className="px-6 py-3.5 text-right">Visits</th>
+                  <th scope="col" className="px-6 py-3.5 text-right">Google Clicks</th>
+                  <th scope="col" className="px-6 py-3.5 text-right">Conversion Rate</th>
+                  <th scope="col" className="px-6 py-3.5 text-center">Quick Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredBusinesses.map((b) => (
-                  <tr key={b.id} className="hover:bg-gray-50/70 transition-colors">
-                    <td className="px-5 py-4">
-                      <div>
-                        <span className="font-semibold text-gray-900 text-sm block">
-                          {b.name}
-                        </span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="font-mono text-xs text-gray-500">
-                            /{b.slug}
-                          </span>
-                          {b.category && (
-                            <span className="text-[11px] bg-gray-100 text-gray-600 px-1.5 py-0.2 rounded font-medium">
-                              {b.category}
+              <tbody className="divide-y divide-slate-100">
+                {filteredBusinesses.map((b) => {
+                  const badge = getIndustryBadge(b.industry_key, b.category);
+                  const BadgeIcon = badge.icon;
+                  const rateNum = parseFloat(b.conversionRate) || 0;
+
+                  return (
+                    <tr
+                      key={b.id}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 font-bold text-xs border border-slate-200/80">
+                            {b.name ? b.name.charAt(0).toUpperCase() : 'B'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-slate-900 text-sm block">
+                              {b.name || 'Untitled Business'}
                             </span>
-                          )}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${badge.className}`}
+                              >
+                                <BadgeIcon className="h-2.5 w-2.5" />
+                                {badge.label}
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-400">
+                                /{b.slug}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                          b.is_active
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-red-50 text-red-700 border-red-200'
-                        }`}
-                      >
-                        {b.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
-                      <span className="font-semibold text-gray-900 text-sm">
-                        {b.pageVisits}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
-                      <span className="font-semibold text-blue-600 text-sm">
-                        {b.googleClicks}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
-                      <span className="inline-block font-mono text-xs font-semibold px-2 py-0.5 bg-gray-100 rounded text-gray-800">
-                        {b.conversionRate}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-center whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleCopyUrl(b.slug)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border transition-colors cursor-pointer ${
-                            copiedSlug === b.slug
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                              : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300 shadow-2xs'
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
+                            b.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
                           }`}
-                          title="Copy customer ReviewGen URL"
                         >
-                          {copiedSlug === b.slug ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy URL</span>
-                            </>
-                          )}
-                        </button>
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              b.is_active ? 'bg-emerald-500' : 'bg-slate-400'
+                            }`}
+                          />
+                          {b.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
 
-                        <a
-                          href={`/${b.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
-                          title="View customer review page"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-6 py-4 text-right font-medium text-slate-900">
+                        {b.pageVisits}
+                      </td>
+
+                      <td className="px-6 py-4 text-right font-semibold text-blue-600">
+                        {b.googleClicks}
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden hidden sm:block">
+                            <div
+                              className="h-full bg-blue-600 rounded-full"
+                              style={{ width: `${Math.min(100, rateNum)}%` }}
+                            />
+                          </div>
+                          <span className="font-bold text-slate-800 text-xs">
+                            {b.conversionRate}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyUrl(b.slug)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                            title="Copy customer review link"
+                          >
+                            {copiedSlug === b.slug ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-emerald-700 font-semibold text-[11px]">
+                                  Copied
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-slate-500" />
+                                <span className="text-[11px]">Copy Link</span>
+                              </>
+                            )}
+                          </button>
+
+                          <a
+                            href={getBusinessUrl(b.slug)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            title="Open customer review page"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500 text-sm">
-            {searchQuery
-              ? 'No business matches your search.'
-              : 'No businesses registered yet. Create your first business to start tracking analytics.'}
+          <div className="py-16 text-center">
+            <Building2 className="mx-auto h-10 w-10 text-slate-300" />
+            <h3 className="mt-3 text-sm font-semibold text-slate-900">
+              {searchQuery ? 'No matching businesses found' : 'No businesses yet'}
+            </h3>
+            <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+              {searchQuery
+                ? 'Try refining your search terms or clearing the filter.'
+                : 'Create your first business to begin collecting customer reviews and tracking analytics.'}
+            </p>
           </div>
         )}
       </div>
