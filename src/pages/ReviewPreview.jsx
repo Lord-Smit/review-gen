@@ -3,6 +3,8 @@ import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
 import StarRating from '../components/StarRating';
 import ReviewEditor from '../components/ReviewEditor';
 import ProgressIndicator from '../components/ProgressIndicator';
+import { useBusiness } from '../contexts/BusinessContext';
+import { DEFAULT_COLORS, safeHexColor } from '../lib/validation';
 
 export default function ReviewPreview({
   rating,
@@ -13,6 +15,7 @@ export default function ReviewPreview({
   onBack,
 }) {
   const [visible, setVisible] = useState(false);
+  const business = useBusiness();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -31,7 +34,11 @@ export default function ReviewPreview({
           <ProgressIndicator currentStep={3} />
 
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            <h1
+              id="step-heading"
+              tabIndex={-1}
+              className="text-2xl font-bold tracking-tight text-gray-900 outline-none sm:text-3xl"
+            >
               Here&apos;s your review
             </h1>
             <p className="text-base text-gray-500">
@@ -68,7 +75,13 @@ export default function ReviewPreview({
               type="button"
               onClick={onNext}
               disabled={isReviewEmpty}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                backgroundColor: safeHexColor(
+                  business?.button_color || business?.primary_color,
+                  DEFAULT_COLORS.button
+                ),
+              }}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-8 py-3 font-medium text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Confirm &amp; Continue
               <ArrowRight className="h-4 w-4" />

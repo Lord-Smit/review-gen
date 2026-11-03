@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Star } from 'lucide-react';
 
 const LABELS = {
@@ -23,6 +23,19 @@ const SIZES = {
   lg: { icon: 36, target: 'w-12 h-12' },
 };
 
+function StarIcon({ filled, size }) {
+  return (
+    <Star
+      size={size}
+      className={`transition-all duration-200 ease-out ${
+        filled ? 'fill-yellow-400 text-yellow-400 drop-shadow-sm' : 'fill-none text-gray-300'
+      }`}
+      strokeWidth={filled ? 1.5 : 1.8}
+      aria-hidden="true"
+    />
+  );
+}
+
 export default function StarRating({
   rating = 0,
   onRatingChange,
@@ -30,15 +43,72 @@ export default function StarRating({
   size = 'lg',
 }) {
   const [hovered, setHovered] = useState(0);
+  const groupRef = useRef(null);
 
   const { icon: iconSize, target } = SIZES[size] || SIZES.lg;
   const displayValue = hovered || rating;
 
+  const focusStar = useCallback((value) => {
+    const buttons = groupRef.current?.querySelectorAll('[role="radio"]');
+    buttons?.[value - 1]?.focus();
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (readonly || !onRatingChange) return;
+
+      let next = rating || 0;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+        next = Math.min(5, (rating || 0) + 1);
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+        next = Math.max(1, (rating || 1) - 1);
+      } else if (event.key === 'Home') {
+        next = 1;
+      } else if (event.key === 'End') {
+        next = 5;
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+      onRatingChange(next);
+      focusStar(next);
+    },
+    [focusStar, onRatingChange, rating, readonly]
+  );
+
+  if (readonly) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div
+          className="flex items-center gap-1"
+          role="img"
+          aria-label={`Rated ${rating} out of 5 stars`}
+        >
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span key={star} className={`${target} flex items-center justify-center`}>
+              <StarIcon filled={star <= rating} size={iconSize} />
+            </span>
+          ))}
+        </div>
+        {rating > 0 && (
+          <span className={`text-sm font-semibold tracking-wide ${LABEL_COLORS[rating] || 'text-gray-500'}`}>
+            {LABELS[rating]}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-2">
       <div
+        ref={groupRef}
         className="flex items-center gap-1"
-        onMouseLeave={() => !readonly && setHovered(0)}
+        role="radiogroup"
+        aria-label="Rate your experience out of 5 stars"
+        onMouseLeave={() => setHovered(0)}
+        onKeyDown={handleKeyDown}
       >
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = star <= displayValue;
@@ -48,53 +118,34 @@ export default function StarRating({
             <button
               key={star}
               type="button"
-              disabled={readonly}
+              role="radio"
+              aria-checked={rating === star}
+              aria-label={`${star} star${star === 1 ? '' : 's'} — ${LABELS[star]}`}
+              tabIndex={rating === star || (!rating && star === 1) ? 0 : -1}
               className={`
                 ${target} flex items-center justify-center rounded-full
-                transition-transform duration-200 ease-out
-                ${readonly ? 'cursor-default' : 'cursor-pointer'}
-                ${!readonly ? 'hover:scale-110 active:scale-95' : ''}
-                ${isSelected && !hovered ? 'animate-[star-pop_0.3s_ease-out]' : ''}
+                cursor-pointer transition-transform duration-200 ease-out
+                hover:scale-110 active:scale-95
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+                ${isSelected && !hovered ? 'animate-star-pop' : ''}
               `}
-              onClick={() => {
-                if (!readonly && onRatingChange) {
-                  onRatingChange(star);
-                }
-              }}
-              onMouseEnter={() => !readonly && setHovered(star)}
-              aria-label={`Rate ${star} out of 5`}
+              onClick={() => onRatingChange?.(star)}
+              onMouseEnter={() => setHovered(star)}
             >
-              <Star
-                size={iconSize}
-                className={`transition-all duration-200 ease-out ${
-                  filled
-                    ? 'fill-yellow-400 text-yellow-400 drop-shadow-sm'
-                    : 'fill-none text-gray-300'
-                }`}
-                strokeWidth={filled ? 1.5 : 1.8}
-              />
+              <StarIcon filled={filled} size={iconSize} />
             </button>
           );
         })}
       </div>
 
-      {rating > 0 && (
-        <span
-          className={`text-sm font-semibold tracking-wide transition-all duration-200 ${
-            LABEL_COLORS[rating] || 'text-gray-500'
-          }`}
-        >
-          {LABELS[rating]}
-        </span>
-      )}
-
-      <style>{`
-        @keyframes star-pop {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.25); }
-          100% { transform: scale(1); }
-        }
-      `}</style>
+      <span
+        className={`text-sm font-semibold tracking-wide transition-all duration-200 ${
+          rating > 0 ? LABEL_COLORS[rating] || 'text-gray-500' : 'text-transparent'
+        }`}
+        aria-live="polite"
+      >
+        {rating > 0 ? LABELS[rating] : '\u00A0'}
+      </span>
     </div>
   );
 }

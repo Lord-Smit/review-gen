@@ -9,7 +9,11 @@ export default function ProgressIndicator({
   const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
 
   return (
-    <div className="w-full px-2 py-4">
+    <div
+      className="w-full px-2 py-4"
+      role="group"
+      aria-label={`Step ${currentStep} of ${totalSteps}: ${STEP_LABELS[currentStep - 1] || ''}`}
+    >
       {/* Progress bar with dots */}
       <div className="relative flex items-center justify-between">
         {/* Background track */}
@@ -26,7 +30,6 @@ export default function ProgressIndicator({
           const step = i + 1;
           const isCompleted = step < currentStep;
           const isCurrent = step === currentStep;
-          const isUpcoming = step > currentStep;
 
           return (
             <div
@@ -34,6 +37,7 @@ export default function ProgressIndicator({
               className="relative z-10 flex flex-col items-center"
             >
               <div
+                aria-current={isCurrent ? 'step' : undefined}
                 className={`
                   flex items-center justify-center rounded-full
                   transition-all duration-300 ease-out

@@ -1,140 +1,166 @@
-# AI-Style Google Review Generator (Without AI)
+# ReviewGen
 
-A modern, mobile-first web application designed for physical QR-code cards that helps customers draft genuine, natural-sounding Google reviews through an intuitive 4-step interactive flow.
+A mobile-first review funnel for QR-code cards. Customers rate their experience, pick a few highlights, get a natural review draft they can edit, and are handed off to Google with the review copied to their clipboard.
 
-Built with **React**, **Vite**, **Tailwind CSS**, and **Lucide React** icons. **100% client-side** — no backend, no database, and no paid AI APIs.
+ReviewGen never posts to Google on the customer's behalf. It is a drafting and hand-off tool, not a review-bot.
 
----
+## Features
 
-## ✨ Features
+- Four-step flow: rating → experience → editable draft → Google hand-off.
+- Template-based review generator with rating-specific tone and per-session variety.
+- Per-business branding, logo, welcome copy, and Google review URL.
+- Admin dashboard with business CRUD, active/inactive toggles, and analytics.
+- Anonymous visit / Google-click analytics with per-session deduplication.
+- Supabase (Auth + Postgres + RLS) in production; a local demo adapter for development.
+- Keyboard-accessible star rating and dialogs, visible focus states, reduced-motion support.
+- Unit tests for the generator, validation, and the local data adapter.
 
-- **4-Step Guided Flow**:
-  1. **Rating**: Interactive 5-star rating with micro-animations.
-  2. **Experience**: Contextual pills tailored to the chosen star rating + optional comments.
-  3. **Review**: Instant dynamic review generation with sentence structure variety, regeneration, and inline editing.
-  4. **Submit**: Auto-copy to clipboard + direct link opening the business's Google Review page.
-- **Natural-Sounding Review Engine**: Predefined JavaScript template engine with dynamic sentence structure, rating-specific tone matching, and variety tracking on regeneration.
-- **Ethical & Neutral**: No fake reviews, no automated posting, and negative ratings have full, unrestricted access to the Google Review link.
-- **Mobile-First & Touch-Friendly**: Designed for smartphone cameras and QR code scans with Apple-inspired minimal UI.
-- **Single Config File**: Easily customize business details without touching app logic.
+## Tech stack
 
----
+React 19, Vite 8, Tailwind CSS 4, React Router 7, Lucide icons, Supabase JS.
 
-## 🚀 Quick Start
+## Quick start
 
-### 1. Install Dependencies
+Requirements: Node.js **22.12+** and npm.
+
 ```bash
 npm install
-```
-
-### 2. Run Locally
-```bash
+cp .env.example .env.local   # Windows: copy .env.example .env.local
 npm run dev
 ```
-Open your browser at `http://localhost:5173` (or the URL shown in your terminal).
 
-### 3. Build for Production
-```bash
-npm run build
-```
-The optimized static build will be generated in the `dist/` directory.
+Without Supabase environment variables the app runs against the **local demo adapter** (localStorage). The admin UI shows a banner explaining that data is browser-local and cannot be shared with customers on other devices.
 
----
+Default demo credentials:
 
-## ⚙️ Configuration
-
-All business-specific settings are centralized in:
-
-📂 `src/config/business.js`
-
-```javascript
-const businessConfig = {
-  // Your public business name displayed in the header and metadata
-  BUSINESS_NAME: 'Your Business Name',
-
-  // Path to your logo in /public (e.g., /logo.svg or /logo.png)
-  BUSINESS_LOGO: '/logo.svg',
-
-  // Direct link to your Google Place review submission form
-  // Example: https://g.page/r/YOUR_PLACE_ID/review or https://search.google.com/local/writereview?placeid=...
-  GOOGLE_REVIEW_URL: 'https://g.page/r/YOUR_PLACE_ID/review',
-
-  // Tagline shown on the welcome screen
-  BUSINESS_TAGLINE: 'Your feedback means a lot to us.',
-
-  // Brand colors
-  PRIMARY_COLOR: '#2563EB',
-  SECONDARY_COLOR: '#1E40AF',
-};
-
-export default businessConfig;
+```text
+Email:    admin@reviewgen.local
+Password: reviewgen-demo
 ```
 
-### Finding Your Google Review URL
-1. Search your business on Google or go to your **Google Business Profile**.
-2. Click **"Ask for reviews"** or **"Get more reviews"**.
-3. Copy the short link provided (e.g. `https://g.page/r/.../review`).
-4. Paste it into `GOOGLE_REVIEW_URL` in `src/config/business.js`.
+Change them with `VITE_DEMO_ADMIN_EMAIL` / `VITE_DEMO_ADMIN_PASSWORD` before sharing a demo. Demo auth hashes the password with PBKDF2-SHA256 in the browser, but browser-side auth is inherently bypassable — it is **not** production security.
 
----
+If sign-in fails with credentials that should work, the browser is holding demo data from an older build (the adapter keeps an existing admin rather than overwriting it). Use **Reset demo data** on the sign-in page, or clear it from the console:
 
-## 🌐 Deployment
+```js
+localStorage.removeItem('reviewgen_db');
+sessionStorage.removeItem('reviewgen_auth');
+location.reload();
+```
 
-The project produces pure static files and can be deployed directly to any static hosting provider.
+Resetting deletes the businesses and analytics saved in that browser.
 
-### Deploy on Vercel
-1. Push your repository to GitHub.
-2. Go to [Vercel](https://vercel.com) and click **"Add New Project"**.
-3. Import your `review-gen` repository.
-4. Framework Preset will auto-detect as **Vite**.
-5. Click **Deploy**.
+## Production setup (Supabase)
 
-### Deploy on Netlify
-1. Connect your repository on [Netlify](https://www.netlify.com).
-2. Set Build Command: `npm run build`
-3. Set Publish directory: `dist`
-4. Click **Deploy Site**.
+1. Create a Supabase project.
+2. Run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL editor. The script is idempotent and creates tables, constraints, indexes, triggers, and RLS policies.
+3. Create an admin user under **Authentication → Users** (auto-confirm it).
+4. Set the user's **app metadata** to `{ "role": "admin" }`:
+   - Dashboard: Users → select the user → Edit → App metadata.
+   - Or run the commented `update auth.users …` statement at the bottom of the schema file.
+   - Do **not** use `user_metadata`; users can edit that themselves.
+5. Copy `.env.example` to `.env.local` and fill in:
 
----
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+VITE_PUBLIC_BASE_URL=https://reviews.example.com
+```
 
-## 📁 Project Structure
+6. Restart the dev server / rebuild.
+
+Only the **anon** key belongs in the browser. Never expose the `service_role` key through a `VITE_` variable.
+
+### How authorization works
+
+- `anon` can read **active** businesses and append analytics events.
+- `authenticated` users can manage businesses and read analytics **only** when `auth.jwt() → app_metadata → role = 'admin'`.
+- The UI also requires `user.isAdmin`; hiding the button is not the security boundary — RLS is.
+
+### Analytics caveat
+
+Visit and Google-click counts are collected client-side. A determined visitor can inflate them, and the app cannot prove that a review was actually submitted to Google. Treat the numbers as directional funnel metrics, not audited conversions.
+
+## Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Production | Supabase project URL. |
+| `VITE_SUPABASE_ANON_KEY` | Production | Supabase anon/public key. |
+| `VITE_PUBLIC_BASE_URL` | Recommended | Canonical origin used in generated customer links/QR destinations. Defaults to `window.location.origin`. |
+| `VITE_DEMO_ADMIN_EMAIL` | No | Local demo adapter email. |
+| `VITE_DEMO_ADMIN_PASSWORD` | No | Local demo adapter password. |
+
+Both Supabase values must be present to enable the Supabase adapter; otherwise the app falls back to the demo adapter.
+
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server. |
+| `npm run build` | Build the production bundle into `dist/`. |
+| `npm run preview` | Serve the production build locally. |
+| `npm run lint` | Run oxlint. |
+| `npm run test` | Run Vitest in watch mode. |
+| `npm run test:run` | Run the unit test suite once. |
+| `npm run check` | Lint + tests + production build (use before merging). |
+
+## Deployment (Vercel)
+
+`vercel.json` configures:
+
+- SPA rewrites so `/:slug` and `/admin/*` resolve to `index.html`.
+- Security headers (CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, Referrer-Policy, Permissions-Policy).
+- Immutable caching for hashed `/assets/*` files.
+
+Set the three production environment variables in the Vercel project before deploying. The CSP allows Supabase over HTTPS/WSS; if you add another API or analytics provider, extend `connect-src` accordingly.
+
+Any static host works as long as it rewrites unknown paths to `index.html`.
+
+## Project structure
 
 ```text
 review-gen/
+├── .github/workflows/ci.yml    # lint + test + build on every push/PR
 ├── public/
 │   ├── logo.svg
-│   └── favicon.svg
+│   └── robots.txt
 ├── src/
-│   ├── components/
-│   │   ├── Header.jsx
-│   │   ├── StarRating.jsx
-│   │   ├── ExperienceOptions.jsx
-│   │   ├── ReviewEditor.jsx
-│   │   ├── ProgressIndicator.jsx
-│   │   ├── Footer.jsx
-│   │   └── Toast.jsx
-│   ├── pages/
-│   │   ├── Welcome.jsx
-│   │   ├── Experience.jsx
-│   │   ├── ReviewPreview.jsx
-│   │   └── ReviewConfirmation.jsx
-│   ├── config/
-│   │   └── business.js
-│   ├── data/
-│   │   ├── reviewOptions.js
-│   │   └── reviewTemplates.js
-│   ├── utils/
-│   │   ├── generateReview.js
-│   │   └── clipboard.js
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
-├── index.html
-├── package.json
-└── vite.config.js
+│   ├── components/            # shared UI + admin components
+│   ├── config/app.js          # environment-driven configuration
+│   ├── contexts/              # Auth + current business
+│   ├── data/                  # review options / templates
+│   ├── hooks/                 # document metadata
+│   ├── lib/
+│   │   ├── analytics.js       # client-side tracking facade
+│   │   ├── analyticsShared.js # backend-agnostic aggregation
+│   │   ├── crypto.js          # demo-only PBKDF2 helpers
+│   │   ├── db.js              # backend-selecting facade
+│   │   ├── db/local.js        # localStorage demo adapter
+│   │   ├── db/supabase.js     # production adapter
+│   │   ├── supabase.js        # Supabase client
+│   │   └── validation.js      # shared validation + sanitisation
+│   ├── pages/                 # customer flow + admin pages
+│   └── utils/                 # review generator, clipboard
+├── supabase/schema.sql
+└── vercel.json
 ```
 
----
+## Testing
 
-## 📄 License
+```bash
+npm run test:run
+```
+
+The suite runs in Node and covers:
+
+- `src/utils/generateReview.test.js` — determinism, rating normalisation, pronoun casing, comment clamping, RNG edge cases.
+- `src/lib/validation.test.js` — slugs, URL/colour/email validation, payload normalisation.
+- `src/lib/analyticsShared.test.js` — time-range filtering, funnel aggregation, legacy event names.
+- `src/lib/db/local.test.js` — demo auth, lockout, legacy password migration, business CRUD, slug conflicts, analytics aggregation, persistence, corrupt-storage recovery.
+
+Supabase adapter behaviour is exercised through RLS in the database; run integration tests against a disposable Supabase project before changing policies.
+
+## License
+
 MIT
