@@ -15,10 +15,16 @@
 import bikeShowroom from './bike-showroom';
 import carShowroom from './car-showroom';
 import generic from './generic';
+import restaurant from './restaurant';
 
 export const DEFAULT_INDUSTRY_KEY = generic.id;
 
-export const industryPresets = Object.freeze([generic, carShowroom, bikeShowroom]);
+export const industryPresets = Object.freeze([
+  generic,
+  carShowroom,
+  bikeShowroom,
+  restaurant,
+]);
 
 const presetsById = new Map(industryPresets.map((preset) => [preset.id, preset]));
 

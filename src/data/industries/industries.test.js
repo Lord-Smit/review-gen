@@ -49,14 +49,29 @@ const FORBIDDEN_VOCABULARY = {
     /restaurant/i,
   ],
   generic: [/test drive/i, /test ride/i, /\bbikes?\b/i, /\bcars?\b/i, /two-wheeler/i, /delicious/i],
+  restaurant: [
+    /test drive/i,
+    /test ride/i,
+    /\bcars?\b/i,
+    /\bbikes?\b/i,
+    /\bscooters?\b/i,
+    /two-wheeler/i,
+    /four-wheeler/i,
+    /dealership/i,
+    /showroom/i,
+    /paperwork/i,
+    /registration/i,
+    /\bemi\b/i,
+  ],
 };
 
 describe('industry presets', () => {
-  it('registers car, bike, and generic with complete copy for every rating', () => {
+  it('registers generic, car, bike, and restaurant with complete copy for every rating', () => {
     expect(industryPresets.map((preset) => preset.id)).toEqual([
       'generic',
       'car-showroom',
       'bike-showroom',
+      'restaurant',
     ]);
 
     for (const preset of industryPresets) {
@@ -146,10 +161,14 @@ describe('industry resolution', () => {
     expect(normalizeIndustryKey('Car Showroom')).toBe('car-showroom');
     expect(normalizeIndustryKey('automobile')).toBe('car-showroom');
     expect(normalizeIndustryKey('two wheeler')).toBe('bike-showroom');
-    expect(normalizeIndustryKey('bakery')).toBeNull();
+    expect(normalizeIndustryKey('Restaurant')).toBe('restaurant');
+    expect(normalizeIndustryKey('cafe')).toBe('restaurant');
+    expect(normalizeIndustryKey('dining')).toBe('restaurant');
+    expect(normalizeIndustryKey('plumbing')).toBeNull();
 
-    expect(resolveIndustry('bakery').id).toBe(DEFAULT_INDUSTRY_KEY);
+    expect(resolveIndustry('plumbing').id).toBe(DEFAULT_INDUSTRY_KEY);
     expect(resolveIndustry('bike-showroom').id).toBe('bike-showroom');
+    expect(resolveIndustry('restaurant').id).toBe('restaurant');
   });
 
   it('resolves overrides before the preset and the preset before generic', () => {

@@ -38,6 +38,7 @@ import {
   ThumbsUp,
   TrendingUp,
   Users,
+  Utensils,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -75,6 +76,7 @@ export const ICON_MAP = {
   ThumbsUp,
   TrendingUp,
   Users,
+  Utensils,
   XCircle,
   Zap,
 };

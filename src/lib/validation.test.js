@@ -156,7 +156,7 @@ describe('validateBusinessInput', () => {
     const defaults = validateBusinessInput(base);
     expect(defaults.value.industry_key).toBe('generic');
 
-    const unknown = validateBusinessInput({ ...base, industry_key: 'bakery' });
+    const unknown = validateBusinessInput({ ...base, industry_key: 'plumbing' });
     expect(unknown.valid).toBe(false);
     expect(unknown.errors.industry_key).toBeTruthy();
     expect(unknown.value.industry_key).toBe('generic');
