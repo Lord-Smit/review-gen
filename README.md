@@ -7,6 +7,7 @@ ReviewGen never posts to Google on the customer's behalf. It is a drafting and h
 ## Features
 
 - Four-step flow: rating → experience → editable draft → Google hand-off.
+- Industry-specific review wording and tap-options (car showroom, bike showroom, or generic), resolved per business at runtime.
 - Template-based review generator with rating-specific tone and per-session variety.
 - Per-business branding, logo, welcome copy, and Google review URL.
 - Admin dashboard with business CRUD, active/inactive toggles, and analytics.
@@ -14,6 +15,22 @@ ReviewGen never posts to Google on the customer's behalf. It is a drafting and h
 - Supabase (Auth + Postgres + RLS) in production; a local demo adapter for development.
 - Keyboard-accessible star rating and dialogs, visible focus states, reduced-motion support.
 - Unit tests for the generator, validation, and the local data adapter.
+
+## Industries
+
+Each business stores an `industry_key` (`generic`, `car-showroom`, `bike-showroom`). The wording itself lives in code under `src/data/industries/`, so fixing a sentence updates every business in that industry at once.
+
+Resolution order for both tap-options and sentence pools:
+
+```text
+per-business override (review_options / review_templates)
+  → industry preset (industry_key)
+    → generic preset
+```
+
+- Pick the industry in **Admin → Business → Industry**. The welcome heading and description are prefilled from the preset (only when they still hold the generic defaults), and the **Review preview** panel shows real samples for all five ratings.
+- Adding an industry is one file in `src/data/industries/` plus one entry in `src/data/industries/index.js`. No schema migration is needed because `industry_key` is plain text.
+- `src/data/industries/industries.test.js` fails the build if one industry's vocabulary leaks into another.
 
 ## Tech stack
 
@@ -129,7 +146,10 @@ review-gen/
 │   ├── components/            # shared UI + admin components
 │   ├── config/app.js          # environment-driven configuration
 │   ├── contexts/              # Auth + current business
-│   ├── data/                  # review options / templates
+│   ├── data/
+│   │   ├── industries/        # per-industry presets + resolver
+│   │   ├── reviewOptions.js   # generic tap-options
+│   │   └── reviewTemplates.js # generic sentence pools
 │   ├── hooks/                 # document metadata
 │   ├── lib/
 │   │   ├── analytics.js       # client-side tracking facade
@@ -155,7 +175,8 @@ npm run test:run
 The suite runs in Node and covers:
 
 - `src/utils/generateReview.test.js` — determinism, rating normalisation, pronoun casing, comment clamping, RNG edge cases.
-- `src/lib/validation.test.js` — slugs, URL/colour/email validation, payload normalisation.
+- `src/data/industries/industries.test.js` — preset completeness, icon whitelist, cross-industry vocabulary leaks, override → preset → generic cascade.
+- `src/lib/validation.test.js` — slugs, URL/colour/email validation, payload normalisation, industry keys.
 - `src/lib/analyticsShared.test.js` — time-range filtering, funnel aggregation, legacy event names.
 - `src/lib/db/local.test.js` — demo auth, lockout, legacy password migration, business CRUD, slug conflicts, analytics aggregation, persistence, corrupt-storage recovery.
 

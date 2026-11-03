@@ -163,6 +163,20 @@ describe('local adapter — businesses', () => {
     await expect(adapter.businesses.getById('missing')).resolves.toBeNull();
     await expect(adapter.businesses.getBySlug('missing')).resolves.toBeNull();
   });
+
+  it('stores the industry key and defaults to generic', async () => {
+    const { adapter } = setup();
+    const created = await adapter.businesses.create(validBusiness);
+    expect(created.industry_key).toBe('generic');
+
+    const updated = await adapter.businesses.update(created.id, {
+      industry_key: 'car-showroom',
+    });
+    expect(updated.industry_key).toBe('car-showroom');
+
+    const reloaded = await adapter.businesses.getBySlug('royal-salon');
+    expect(reloaded.industry_key).toBe('car-showroom');
+  });
 });
 
 describe('local adapter — analytics', () => {

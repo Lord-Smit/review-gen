@@ -51,6 +51,9 @@ create table if not exists public.businesses (
   id uuid primary key default gen_random_uuid(),
   business_name text not null,
   slug text not null,
+  -- Free text on purpose: adding a new industry preset must not require a
+  -- migration or a constraint change. Unknown keys fall back to "generic".
+  industry_key text not null default 'generic',
   category text,
   description text,
   contact_info jsonb not null default '{}'::jsonb,
@@ -74,6 +77,32 @@ create table if not exists public.businesses (
 -- Migration-safe additions for projects created with the old schema.
 alter table public.businesses
   add column if not exists contact_info jsonb not null default '{}'::jsonb;
+
+alter table public.businesses
+  add column if not exists industry_key text not null default 'generic';
+
+-- One-time backfill from the legacy free-text category. This is safe to re-run:
+-- rows that already have a specific industry (or a category that does not
+-- match) are left untouched.
+update public.businesses
+set industry_key = 'car-showroom'
+where industry_key = 'generic'
+  and (
+    category ilike '%car%'
+    or category ilike '%automobile%'
+    or category ilike '%auto dealer%'
+    or category ilike '%dealership%'
+  );
+
+update public.businesses
+set industry_key = 'bike-showroom'
+where industry_key = 'generic'
+  and (
+    category ilike '%bike%'
+    or category ilike '%motorcycle%'
+    or category ilike '%scooter%'
+    or category ilike '%two wheeler%'
+  );
 
 -- Constraints are added separately so existing projects can be upgraded.
 do $$
@@ -159,6 +188,7 @@ $$;
 -- Indexes
 -- ----------------------------------------------------------------------------
 create index if not exists idx_businesses_active on public.businesses (is_active) where is_active;
+create index if not exists idx_businesses_industry on public.businesses (industry_key);
 create index if not exists idx_businesses_created_at on public.businesses (created_at desc);
 create index if not exists idx_analytics_business_created
   on public.analytics_events (business_id, created_at desc);

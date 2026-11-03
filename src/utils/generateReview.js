@@ -1,8 +1,5 @@
-import reviewTemplates from '../data/reviewTemplates';
+import genericPreset from '../data/industries/generic';
 import { LIMITS } from '../lib/validation';
-
-const { openings, descriptions, closings, connectors, commentIntros } =
-  reviewTemplates;
 
 const VALID_RATINGS = new Set([1, 2, 3, 4, 5]);
 
@@ -87,9 +84,22 @@ function normalizeOptionLabels(selectedOptions) {
  * Create an independent generator instance. Keeping the "last used index"
  * state inside a closure avoids leaking state between businesses/sessions.
  *
- * @param {{ random?: () => number }} [options]
+ * The algorithm is industry-agnostic: only the injected word pools change.
+ *
+ * @param {{ random?: () => number, templates?: object }} [options]
  */
-export function createReviewGenerator({ random = Math.random } = {}) {
+export function createReviewGenerator({
+  random = Math.random,
+  templates = genericPreset.templates,
+} = {}) {
+  const {
+    openings = {},
+    descriptions = {},
+    closings = {},
+    connectors = [],
+    commentIntros = [],
+  } = templates || {};
+
   const lastUsed = {
     openingIndex: -1,
     descriptionIndex: -1,

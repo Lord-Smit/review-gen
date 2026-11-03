@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Save, Copy, Check, ExternalLink, Sparkles } from 'lucide-react';
 import ColorPicker from '../../components/admin/ColorPicker';
+import IndustryPreview from '../../components/admin/IndustryPreview';
+import { listIndustries, resolveIndustry } from '../../data/industries';
+import genericPreset from '../../data/industries/generic';
 import { db } from '../../lib/db';
 import {
   createUniqueSlug,
@@ -14,6 +17,9 @@ import {
 import { getBusinessUrl } from '../../config/app';
 import { copyToClipboard } from '../../utils/clipboard';
 
+const INDUSTRIES = listIndustries();
+const INDUSTRY_LABELS = new Set(INDUSTRIES.map((industry) => industry.label));
+
 export default function BusinessForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,6 +29,7 @@ export default function BusinessForm() {
     name: '',
     business_name: '',
     slug: '',
+    industry_key: 'generic',
     category: '',
     description: '',
     contact_email: '',
@@ -90,6 +97,7 @@ export default function BusinessForm() {
         if (isMounted) {
           setFormData({
             ...data,
+            industry_key: data.industry_key || 'generic',
             name: data.name || data.business_name || '',
             business_name: data.business_name || data.name || '',
             contact_email: data.contact_info?.email || data.contact_email || '',
@@ -178,6 +186,40 @@ export default function BusinessForm() {
 
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleIndustryChange = (e) => {
+    const preset = resolveIndustry(e.target.value);
+
+    setFormData((prev) => {
+      const next = { ...prev, industry_key: preset.id };
+
+      // Seed the page copy from the preset, but never overwrite wording the
+      // owner has already customised.
+      if (
+        !prev.welcome_heading?.trim() ||
+        prev.welcome_heading === genericPreset.page.welcomeHeading
+      ) {
+        next.welcome_heading = preset.page.welcomeHeading;
+      }
+
+      if (
+        !prev.welcome_description?.trim() ||
+        prev.welcome_description === genericPreset.page.welcomeDescription
+      ) {
+        next.welcome_description = preset.page.welcomeDescription;
+      }
+
+      if (!prev.category?.trim() || INDUSTRY_LABELS.has(prev.category)) {
+        next.category = preset.id === 'generic' ? '' : preset.label;
+      }
+
+      return next;
+    });
+
+    if (errors.industry_key) {
+      setErrors((prev) => ({ ...prev, industry_key: '' }));
     }
   };
 
@@ -446,10 +488,36 @@ export default function BusinessForm() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="industry_key">
+                Industry
+              </label>
+              <select
+                id="industry_key"
+                name="industry_key"
+                value={formData.industry_key}
+                onChange={handleIndustryChange}
+                className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+              >
+                {INDUSTRIES.map((industry) => (
+                  <option key={industry.id} value={industry.id}>
+                    {industry.label}
+                  </option>
+                ))}
+              </select>
+              {errors.industry_key ? (
+                <p className="text-xs text-red-600 mt-1">{errors.industry_key}</p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-1">
+                  Controls the review wording and the options customers can tap.
+                </p>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="category">
-                Category
+                Category (optional label)
               </label>
               <input
                 id="category"
@@ -458,11 +526,13 @@ export default function BusinessForm() {
                 maxLength={LIMITS.category}
                 value={formData.category}
                 onChange={handleChange}
-                placeholder="e.g. Salon, Restaurant, Hotel"
+                placeholder="e.g. Car Showroom"
                 className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="contact_email">
                 Contact Email
@@ -641,6 +711,8 @@ export default function BusinessForm() {
               className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
             />
           </div>
+
+          <IndustryPreview industryKey={formData.industry_key} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center pt-2">
             <div>

@@ -14,6 +14,7 @@ const RATING_LABELS = {
 };
 
 export default function Experience({
+  pageCopy,
   rating,
   reviewOptions,
   selectedOptions,
@@ -79,7 +80,10 @@ export default function Experience({
               value={comment}
               maxLength={LIMITS.comment}
               onChange={(e) => onCommentChange(e.target.value.slice(0, LIMITS.comment))}
-              placeholder="Add any additional details about your experience…"
+              placeholder={
+                pageCopy?.commentPlaceholder ||
+                'Add any additional details about your experience…'
+              }
               className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
             <div className="flex justify-end">

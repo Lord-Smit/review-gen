@@ -3,6 +3,7 @@
  * adapters. Keeping these pure makes them easy to unit test and prevents
  * malformed data from reaching storage/Postgres.
  */
+import { DEFAULT_INDUSTRY_KEY, normalizeIndustryKey } from '../data/industries';
 
 export const LIMITS = Object.freeze({
   businessName: 120,
@@ -192,9 +193,17 @@ export function validateBusinessInput(input = {}) {
       ? input.review_templates
       : null;
 
+  // Unknown non-empty keys are a mistake worth surfacing; an omitted key simply
+  // means "general business", which keeps older clients and rows working.
+  const industryKey = normalizeIndustryKey(input.industry_key);
+  if (industryKey === null) {
+    errors.industry_key = 'Choose a supported industry from the list.';
+  }
+
   const value = {
     slug: requestedSlug,
     business_name: businessName,
+    industry_key: industryKey || DEFAULT_INDUSTRY_KEY,
     category: clampText(input.category, LIMITS.category),
     description: clampText(input.description, LIMITS.description),
     contact_info: sanitizeContactInfo({

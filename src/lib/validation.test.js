@@ -147,4 +147,18 @@ describe('validateBusinessInput', () => {
 
     expect(value.slug).toBe('joes-coffee');
   });
+
+  it('normalises the industry key and rejects unknown industries', () => {
+    const explicit = validateBusinessInput({ ...base, industry_key: 'Car Showroom' });
+    expect(explicit.valid).toBe(true);
+    expect(explicit.value.industry_key).toBe('car-showroom');
+
+    const defaults = validateBusinessInput(base);
+    expect(defaults.value.industry_key).toBe('generic');
+
+    const unknown = validateBusinessInput({ ...base, industry_key: 'bakery' });
+    expect(unknown.valid).toBe(false);
+    expect(unknown.errors.industry_key).toBeTruthy();
+    expect(unknown.value.industry_key).toBe('generic');
+  });
 });

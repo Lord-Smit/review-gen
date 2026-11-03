@@ -27,6 +27,7 @@ const BUSINESS_COLUMNS = [
   'id',
   'business_name',
   'slug',
+  'industry_key',
   'category',
   'description',
   'contact_info',
@@ -62,6 +63,7 @@ function toRow(value) {
   return {
     business_name: value.business_name,
     slug: value.slug,
+    industry_key: value.industry_key,
     category: value.category,
     description: value.description,
     contact_info: value.contact_info,

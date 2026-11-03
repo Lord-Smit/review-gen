@@ -7,21 +7,12 @@ import { BusinessProvider } from '../contexts/BusinessContext';
 import { createReviewGenerator } from '../utils/generateReview';
 import { isValidSlug, safeHexColor, toSlug } from '../lib/validation';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { resolveReviewContent } from '../data/industries';
 import Welcome from './Welcome';
 import Experience from './Experience';
 import ReviewPreview from './ReviewPreview';
 import ReviewConfirmation from './ReviewConfirmation';
 import NotFoundPage from './NotFoundPage';
-import defaultReviewOptions from '../data/reviewOptions';
-
-function resolveOptionsMap(business) {
-  const custom = business?.review_options;
-  const isPlainObject =
-    custom && typeof custom === 'object' && !Array.isArray(custom);
-  return isPlainObject && Object.keys(custom).length > 0
-    ? custom
-    : defaultReviewOptions;
-}
 
 function getSelectedLabels(optionsMap, rating, selectedOptionIds) {
   const options = Array.isArray(optionsMap?.[rating]) ? optionsMap[rating] : [];
@@ -35,14 +26,12 @@ function getSelectedLabels(optionsMap, rating, selectedOptionIds) {
     .map((option) => option.label);
 }
 
-export default function BusinessReviewPage() {
-  const { slug } = useParams();
-  const [business, setBusiness] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [loadError, setLoadError] = useState('');
-  const [reloadToken, setReloadToken] = useState(0);
-
+/**
+ * The customer-facing steps. Mounted with `key` set to the business id, so
+ * moving between two business links naturally resets rating/step state instead
+ * of leaking the previous business's selections.
+ */
+function ReviewFlow({ reviewContent }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [rating, setRating] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -50,82 +39,27 @@ export default function BusinessReviewPage() {
   const [review, setReview] = useState('');
 
   const generatorRef = useRef(null);
+  const templates = reviewContent.templates;
+  const activeReviewOptions = reviewContent.options;
 
   const getGenerator = useCallback(() => {
     if (!generatorRef.current) {
-      generatorRef.current = createReviewGenerator();
+      generatorRef.current = createReviewGenerator({ templates });
     }
     return generatorRef.current;
-  }, []);
+  }, [templates]);
 
-  const normalizedSlug = useMemo(() => {
-    const candidate = String(slug ?? '').toLowerCase();
-    return isValidSlug(candidate) ? toSlug(candidate) : '';
-  }, [slug]);
-
+  // Never carry exclusion state across a wording change.
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadBusiness() {
-      setLoading(true);
-      setNotFound(false);
-      setLoadError('');
-
-      if (!normalizedSlug) {
-        if (isMounted) {
-          setNotFound(true);
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const data = await db.businesses.getBySlug(normalizedSlug);
-        if (!isMounted) return;
-
-        if (data && data.is_active) {
-          setBusiness(data);
-          // Fire-and-forget: analytics must never block the review flow.
-          trackPageView(data.id);
-        } else {
-          setBusiness(null);
-          setNotFound(true);
-        }
-      } catch (error) {
-        if (isMounted) {
-          console.error('Failed to load business:', error);
-          setLoadError(error?.message || 'We could not load this page.');
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadBusiness();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [normalizedSlug, reloadToken]);
-
-  const displayName = business?.name || business?.business_name || '';
-  useDocumentMeta({
-    title: displayName ? `${displayName} — Share your experience` : 'Share Your Experience',
-    description:
-      business?.welcome_description ||
-      'Share your experience with us and leave a quick, honest Google review.',
-    noIndex: notFound || Boolean(loadError),
-  });
+    generatorRef.current = null;
+  }, [templates]);
 
   // Move focus/scroll to the new step for keyboard and screen-reader users.
   useEffect(() => {
-    if (loading || notFound || loadError) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     const heading = document.getElementById('step-heading');
     heading?.focus?.({ preventScroll: true });
-  }, [currentStep, loading, notFound, loadError]);
-
-  const activeReviewOptions = useMemo(() => resolveOptionsMap(business), [business]);
+  }, [currentStep]);
 
   const handleRatingChange = useCallback((newRating) => {
     setRating(newRating);
@@ -186,6 +120,121 @@ export default function BusinessReviewPage() {
     setCurrentStep(step);
   }, []);
 
+  return (
+    <>
+      {currentStep === 1 && (
+        <Welcome
+          pageCopy={reviewContent.page}
+          rating={rating}
+          onRatingChange={handleRatingChange}
+          onNext={() => goToStep(2)}
+        />
+      )}
+
+      {currentStep === 2 && (
+        <Experience
+          pageCopy={reviewContent.page}
+          rating={rating}
+          reviewOptions={activeReviewOptions}
+          selectedOptions={selectedOptions}
+          onToggleOption={handleToggleOption}
+          comment={comment}
+          onCommentChange={handleCommentChange}
+          onNext={handleGenerateReview}
+          onBack={() => goToStep(1)}
+        />
+      )}
+
+      {currentStep === 3 && (
+        <ReviewPreview
+          rating={rating}
+          review={review}
+          onReviewChange={handleReviewChange}
+          onRegenerate={handleRegenerateReview}
+          onNext={() => goToStep(4)}
+          onBack={() => goToStep(2)}
+        />
+      )}
+
+      {currentStep === 4 && (
+        <ReviewConfirmation rating={rating} review={review} onRestart={handleRestart} />
+      )}
+    </>
+  );
+}
+
+export default function BusinessReviewPage() {
+  const { slug } = useParams();
+  const [business, setBusiness] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const normalizedSlug = useMemo(() => {
+    const candidate = String(slug ?? '').toLowerCase();
+    return isValidSlug(candidate) ? toSlug(candidate) : '';
+  }, [slug]);
+
+  // Wording, tap-options, and page copy come from the business's industry
+  // preset, with per-business JSON overrides winning when present.
+  const reviewContent = useMemo(() => resolveReviewContent(business), [business]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadBusiness() {
+      setLoading(true);
+      setNotFound(false);
+      setLoadError('');
+      setBusiness(null);
+
+      if (!normalizedSlug) {
+        if (isMounted) {
+          setNotFound(true);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const data = await db.businesses.getBySlug(normalizedSlug);
+        if (!isMounted) return;
+
+        if (data && data.is_active) {
+          setBusiness(data);
+          // Fire-and-forget: analytics must never block the review flow.
+          trackPageView(data.id);
+        } else {
+          setBusiness(null);
+          setNotFound(true);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to load business:', error);
+          setLoadError(error?.message || 'We could not load this page.');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadBusiness();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [normalizedSlug, reloadToken]);
+
+  const displayName = business?.name || business?.business_name || '';
+  useDocumentMeta({
+    title: displayName ? `${displayName} — Share your experience` : 'Share Your Experience',
+    description:
+      reviewContent.page.description ||
+      'Share your experience with us and leave a quick, honest Google review.',
+    noIndex: notFound || Boolean(loadError),
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -229,41 +278,10 @@ export default function BusinessReviewPage() {
         style={{ backgroundColor: safeHexColor(business.background_color, '#FAFAFA') }}
       >
         <div className="flex-1 w-full max-w-lg mx-auto px-4 py-6">
-          {currentStep === 1 && (
-            <Welcome
-              rating={rating}
-              onRatingChange={handleRatingChange}
-              onNext={() => goToStep(2)}
-            />
-          )}
-
-          {currentStep === 2 && (
-            <Experience
-              rating={rating}
-              reviewOptions={activeReviewOptions}
-              selectedOptions={selectedOptions}
-              onToggleOption={handleToggleOption}
-              comment={comment}
-              onCommentChange={handleCommentChange}
-              onNext={handleGenerateReview}
-              onBack={() => goToStep(1)}
-            />
-          )}
-
-          {currentStep === 3 && (
-            <ReviewPreview
-              rating={rating}
-              review={review}
-              onReviewChange={handleReviewChange}
-              onRegenerate={handleRegenerateReview}
-              onNext={() => goToStep(4)}
-              onBack={() => goToStep(2)}
-            />
-          )}
-
-          {currentStep === 4 && (
-            <ReviewConfirmation rating={rating} review={review} onRestart={handleRestart} />
-          )}
+          <ReviewFlow
+            key={business.id || business.slug}
+            reviewContent={reviewContent}
+          />
         </div>
       </div>
     </BusinessProvider>
